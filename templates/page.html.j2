@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AI 뉴스 | {{ today_kr }}</title>
+  <meta name="description" content="AI 뉴스 - 에디터 기사와 자동 수집 뉴스를 한눈에">
+  <meta property="og:title" content="AI 뉴스 | {{ today_kr }}">
+  <meta property="og:description" content="AI 주요 이슈를 한눈에 확인하세요">
+  <meta property="og:type" content="website">
+  <style>
+    :root{--bg:#f4f6f8;--card:#ffffff;--muted:#6b7280;--text:#111827;--border:rgba(0,0,0,.08);--accent:#2d8659;--accent-light:#e8f5ef}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;line-height:1.6}
+    a{color:var(--accent);text-decoration:none}
+    a:hover{opacity:.85}
+    .wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+
+    /* 헤더 */
+    .site-header{position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid var(--border);box-shadow:0 1px 4px rgba(0,0,0,.04)}
+    .site-header .wrap{display:flex;align-items:center;justify-content:space-between;padding-top:12px;padding-bottom:12px;flex-wrap:wrap;gap:8px}
+    .site-logo{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.02em}
+    .site-logo span{color:var(--accent)}
+    .site-nav{display:flex;gap:6px;align-items:center}
+    .site-nav a{font-size:14px;font-weight:600;padding:6px 14px;border-radius:8px;color:var(--text);transition:background .2s}
+    .site-nav a:hover,.site-nav a.active{background:var(--accent-light);color:var(--accent);opacity:1}
+    .site-date{font-size:13px;color:var(--muted);width:100%;text-align:center;padding-bottom:4px;border-top:1px solid var(--border);margin-top:4px;padding-top:8px}
+
+    /* 섹션 헤딩 */
+    .section-title{display:flex;align-items:center;gap:10px;margin:32px 0 18px;padding-bottom:12px;border-bottom:2px solid var(--text)}
+    .section-title h2{margin:0;font-size:20px;font-weight:800}
+    .section-title .label{font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.05em}
+    .label-editor{background:#1a4d3a;color:#fff}
+    .label-auto{background:var(--accent-light);color:var(--accent)}
+    .section-title .more{margin-left:auto;font-size:13px;font-weight:600}
+
+    /* 에디터 섹션: 왼쪽 메인 + 오른쪽 리스트 */
+    .editor-layout{display:grid;gap:20px;grid-template-columns:1fr}
+    @media(min-width:768px){.editor-layout{grid-template-columns:1.3fr 1fr}}
+
+    .editor-main{background:var(--card);border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.05);transition:transform .2s,box-shadow .2s}
+    .editor-main:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.1)}
+    .editor-main-thumb{width:100%;height:300px;background-size:cover;background-position:center;background-color:#e5e7eb;background-image:linear-gradient(135deg,#b8e6d5 0%,#8dd4b8 100%)}
+    .editor-main-body{padding:20px}
+    .editor-main-body .cat{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}
+    .editor-main-body h3{margin:0 0 10px;font-size:20px;font-weight:800;line-height:1.4}
+    .editor-main-body h3 a{color:var(--text)}
+    .editor-main-body h3 a:hover{color:var(--accent)}
+    .editor-main-body .summary{font-size:14px;color:var(--muted);line-height:1.6}
+    .editor-main-body .meta{font-size:12px;color:#9ca3af;margin-top:12px}
+
+    .editor-sidebar{background:var(--card);border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);overflow:hidden}
+    .editor-sidebar-item{display:block;padding:16px 20px;border-bottom:1px solid var(--border);transition:background .15s}
+    .editor-sidebar-item:last-child{border-bottom:none}
+    .editor-sidebar-item:hover{background:#f8fafb}
+    .editor-sidebar-item .cat{font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+    .editor-sidebar-item h4{margin:0 0 4px;font-size:15px;font-weight:700;line-height:1.4;color:var(--text)}
+    .editor-sidebar-item .meta{font-size:11px;color:#9ca3af}
+
+    .editor-empty{text-align:center;padding:40px;color:var(--muted);background:var(--card);border-radius:14px}
+
+    /* 자동 수집 뉴스 그리드 */
+    .news-grid{display:grid;gap:16px;grid-template-columns:repeat(12,1fr)}
+    .news-card{grid-column:span 12;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.04);transition:transform .2s,box-shadow .2s}
+    .news-card:hover{transform:translateY(-3px);box-shadow:0 6px 16px rgba(0,0,0,.08)}
+    @media(min-width:720px){.news-card{grid-column:span 6}}
+    @media(min-width:1024px){.news-card{grid-column:span 4}}
+    .news-card-img{width:100%;height:160px;object-fit:cover;background:#f0f0f0}
+    .news-card-body{padding:16px}
+    .news-card-body .kicker{font-size:11px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+    .news-card-body h3{margin:0 0 8px;font-size:15px;font-weight:700;line-height:1.4}
+    .news-card-body h3 a{color:var(--text)}
+    .news-card-body h3 a:hover{color:var(--accent)}
+    .news-card-body .desc{color:var(--muted);font-size:13.5px;line-height:1.5}
+    .news-card-body .meta{margin-top:8px;color:#9ca3af;font-size:12px}
+
+    /* 푸터 */
+    .site-footer{text-align:center;color:var(--muted);padding:40px 0 60px;font-size:13px;border-top:1px solid var(--border);margin-top:40px}
+  </style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<header class="site-header">
+  <div class="wrap">
+    <a href="/index.html" class="site-logo">COALAB<span>AI NEWS</span></a>
+    <nav class="site-nav">
+      <a href="/index.html" class="active">홈</a>
+      <a href="/board.html">기사 게시판</a>
+      <a href="/archive-list.html">아카이브</a>
+      <a href="/admin.html">관리자</a>
+    </nav>
+  </div>
+  <div class="wrap">
+    <div class="site-date">{{ today_kr }} · {{ week_str }}</div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- 에디터 기사 섹션 (Supabase에서 동적 로드) -->
+  <div class="section-title">
+    <span class="label label-editor">EDITOR</span>
+    <h2>에디터 기사</h2>
+    <a href="board.html" class="more">전체보기 &rarr;</a>
+  </div>
+  <div class="editor-layout" id="editor-articles">
+    <div class="editor-empty">기사를 불러오는 중...</div>
+  </div>
+
+  <!-- 자동 수집 뉴스 섹션 -->
+  <div class="section-title">
+    <span class="label label-auto">AUTO</span>
+    <h2>AI 뉴스 자동 수집</h2>
+    <a href="/archive/{{ today_iso }}/index.html" class="more">오늘 아카이브 &rarr;</a>
+  </div>
+  <section class="news-grid">
+    {% for c in cards %}
+    <article class="news-card">
+      <img src="/assets/images/ai-news-img1.png" alt="AI News" class="news-card-img">
+      <div class="news-card-body">
+        <div class="kicker">{{ c.source }}</div>
+        <h3><a href="{{ c.link }}" target="_blank" rel="noopener">{{ c.title }}</a></h3>
+        <p class="desc">{{ c.summary }}</p>
+        <div class="meta">{{ c.date_kr }}</div>
+      </div>
+    </article>
+    {% endfor %}
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  &copy; {{ year }} AI NEWS &middot; 자동 생성 (GitHub Actions) &middot; 최신: {{ today_kr }}
+</footer>
+
+<!-- Supabase: 에디터 기사 로드 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+(async function() {
+  const SUPABASE_URL = 'https://onfddgmyzkeaxidpdwra.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uZmRkZ215emtlYXhpZHBkd3JhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2NzgwMDcsImV4cCI6MjA3ODI1NDAwN30.pwzxOD_6TEQT-KWZzvvlIXCnR6qr_9kN6jFf57FtAwo';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const container = document.getElementById('editor-articles');
+
+  const { data, error } = await sb
+    .from('articles')
+    .select('id, title, summary, author, category, thumbnail_url, created_at')
+    .eq('published', true)
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  if (error || !data || data.length === 0) {
+    container.innerHTML = '<div class="editor-empty">등록된 에디터 기사가 없습니다.</div>';
+    return;
+  }
+
+  var first = data[0];
+  var firstDate = new Date(first.created_at).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
+  var firstThumb = first.thumbnail_url
+    ? 'background-image:url(' + first.thumbnail_url + ');background-size:cover;background-position:center;background-color:transparent'
+    : '';
+
+  var html = '<div class="editor-main">';
+  html += '<div class="editor-main-thumb" style="' + firstThumb + '"></div>';
+  html += '<div class="editor-main-body">';
+  html += '<div class="cat">' + escapeHtml(first.category || '일반') + '</div>';
+  html += '<h3><a href="article.html?id=' + first.id + '">' + escapeHtml(first.title) + '</a></h3>';
+  if (first.summary) {
+    html += '<p class="summary">' + escapeHtml(first.summary) + '</p>';
+  }
+  html += '<div class="meta">' + escapeHtml(first.author || '관리자') + ' · ' + firstDate + '</div>';
+  html += '</div></div>';
+
+  if (data.length > 1) {
+    html += '<div class="editor-sidebar">';
+    for (var i = 1; i < data.length; i++) {
+      var article = data[i];
+      var date = new Date(article.created_at).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
+      html += '<a href="article.html?id=' + article.id + '" class="editor-sidebar-item">';
+      html += '<div class="cat">' + escapeHtml(article.category || '일반') + '</div>';
+      html += '<h4>' + escapeHtml(article.title) + '</h4>';
+      html += '<div class="meta">' + escapeHtml(article.author || '관리자') + ' · ' + date + '</div>';
+      html += '</a>';
+    }
+    html += '</div>';
+  }
+
+  container.innerHTML = html;
+
+  function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+})();
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
